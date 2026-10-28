@@ -6,8 +6,8 @@
 //  "service_role key".
 // =====================================================================
 export const CONFIG = {
-  SUPABASE_URL: 'https://TU-PROYECTO.supabase.co',
-  SUPABASE_ANON_KEY: 'PEGAR_ACA_LA_ANON_KEY',
+  SUPABASE_URL: 'https://awlrmkbdidoikeqtpesl.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3bHJta2JkaWRvaWtlcXRwZXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMDU5MjQsImV4cCI6MjEwODc4MTkyNH0.OQ_DCQtLjyRjn81x1VY1F9O2qKHQ-pzuu4DRh5j_O-w',
 
   // Cada legajo se convierte internamente en un usuario de Supabase con
   // este dominio (ej.: 12345@usuarios.firma-policia-salta.app). No se
