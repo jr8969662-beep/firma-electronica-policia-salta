@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verificar acta · Firma Electrónica</title>
+  <meta name="description" content="Verificá la autenticidad de un acta firmada electrónicamente.">
+  <link rel="icon" href="img/escudo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-in">
+      <a class="marca" href="index.html">
+        <img src="img/escudo.svg" alt="">
+        <div><b>Firma Electrónica</b><span>Verificación de actas</span></div>
+      </a>
+    </div>
+  </header>
+  <main style="max-width:720px">
+    <h1>Verificar un acta</h1>
+    <p class="sutil">Ingresá el código de verificación que figura al pie del acta (o escaneá su QR).</p>
+    <form id="form" class="tarjeta">
+      <div class="campo">
+        <label for="codigo">Código de verificación</label>
+        <input id="codigo" maxlength="20" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px" required>
+      </div>
+      <button class="btn" type="submit">Verificar</button>
+    </form>
+    <div id="resultado" style="margin-top:14px"></div>
+  </main>
+  <div id="toast" hidden></div>
+  <script type="module" src="js/verificar.js"></script>
+</body>
+</html>

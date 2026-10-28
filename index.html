@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firma Electrónica · Policía de Salta</title>
+  <meta name="description" content="Sistema de firma electrónica para el personal de la Policía de Salta.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="img/escudo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+</head>
+<body>
+  <!-- Se carga mientras arranca la app -->
+  <div id="cargando" class="acceso">
+    <div class="acceso-logo">
+      <img src="img/escudo.svg" alt="">
+      <h1>Firma Electrónica</h1>
+      <p>Cargando…</p>
+    </div>
+  </div>
+
+  <!-- Pantalla de acceso -->
+  <section id="vista-acceso" class="acceso" hidden>
+    <div class="acceso-caja">
+      <div class="acceso-logo">
+        <img src="img/escudo.svg" alt="">
+        <h1>Firma Electrónica</h1>
+        <p>Policía de la Provincia de Salta</p>
+      </div>
+      <div class="tarjeta">
+        <div class="pestanas" role="tablist">
+          <button type="button" class="activo" data-pestana="ingresar">Ingresar</button>
+          <button type="button" data-pestana="registro">Crear cuenta</button>
+        </div>
+
+        <form id="form-ingresar" autocomplete="on">
+          <div class="campo">
+            <label for="in-legajo">Legajo</label>
+            <input id="in-legajo" name="username" inputmode="numeric" autocomplete="username" required maxlength="15">
+          </div>
+          <div class="campo">
+            <label for="in-clave">Contraseña</label>
+            <input id="in-clave" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn" style="width:100%" type="submit">Ingresar</button>
+          <p class="sutil" style="margin:12px 0 0;font-size:.88rem">¿Olvidaste la contraseña? Pedile al administrador del sistema de tu unidad que la restablezca.</p>
+        </form>
+
+        <form id="form-registro" hidden autocomplete="on">
+          <div class="aviso info" style="font-size:.9rem"><p>Tu cuenta queda <b>pendiente</b> hasta que un administrador verifique tus datos y la active.</p></div>
+          <div class="fila">
+            <div class="campo"><label for="re-legajo">Legajo</label><input id="re-legajo" inputmode="numeric" autocomplete="username" required maxlength="15" pattern="[0-9A-Za-z]{3,15}"></div>
+            <div class="campo"><label for="re-jerarquia">Jerarquía</label><input id="re-jerarquia" list="jerarquias" required maxlength="60"></div>
+          </div>
+          <div class="fila">
+            <div class="campo"><label for="re-apellido">Apellido</label><input id="re-apellido" required maxlength="60" autocomplete="family-name"></div>
+            <div class="campo"><label for="re-nombre">Nombre</label><input id="re-nombre" required maxlength="60" autocomplete="given-name"></div>
+          </div>
+          <div class="campo"><label for="re-dependencia">Dependencia</label><input id="re-dependencia" required maxlength="120" placeholder="Ej.: Comisaría Seccional 5ª"></div>
+          <div class="campo"><label for="re-cargo">Cargo <small style="display:inline">(opcional)</small></label><input id="re-cargo" maxlength="120" placeholder="Ej.: Jefe de Comisaría"></div>
+          <div class="fila">
+            <div class="campo"><label for="re-clave">Contraseña</label><input id="re-clave" type="password" minlength="8" required autocomplete="new-password"></div>
+            <div class="campo"><label for="re-clave2">Repetir contraseña</label><input id="re-clave2" type="password" minlength="8" required autocomplete="new-password"></div>
+          </div>
+          <button class="btn" style="width:100%" type="submit">Crear cuenta</button>
+        </form>
+      </div>
+      <p style="text-align:center;margin-top:16px"><a href="verificar.html" style="color:#cfe6f7">Verificar un acta firmada</a></p>
+    </div>
+  </section>
+
+  <!-- Aplicación -->
+  <div id="vista-app" hidden>
+    <header class="barra">
+      <div class="barra-in">
+        <a class="marca" href="#/inicio">
+          <img src="img/escudo.svg" alt="">
+          <div><b>Firma Electrónica</b><span>Policía de la Provincia de Salta</span></div>
+        </a>
+        <div class="usuario"><b id="u-nombre"></b><span id="u-detalle"></span></div>
+        <button class="btn-salir" id="btn-salir" type="button">Salir</button>
+      </div>
+      <nav class="menu" id="menu">
+        <div class="menu-in">
+          <a href="#/inicio" data-ruta="inicio">Inicio</a>
+          <a href="#/por-firmar" data-ruta="por-firmar">Por firmar <span class="insignia" id="insignia-pend" hidden>0</span></a>
+          <a href="#/actas" data-ruta="actas">Mis actas</a>
+          <a href="#/nueva" data-ruta="nueva">Nueva acta</a>
+          <a href="#/historial" data-ruta="historial">Historial de mi firma</a>
+          <a href="#/firma" data-ruta="firma">Mi firma y cuenta</a>
+          <a href="#/admin" data-ruta="admin" id="menu-admin" hidden>Administración</a>
+        </div>
+      </nav>
+    </header>
+    <main id="contenido"></main>
+  </div>
+
+  <datalist id="jerarquias">
+    <option value="Agente"><option value="Cabo"><option value="Cabo Primero"><option value="Sargento">
+    <option value="Sargento Primero"><option value="Sargento Ayudante"><option value="Suboficial Principal">
+    <option value="Suboficial Mayor"><option value="Oficial Subayudante"><option value="Oficial Ayudante">
+    <option value="Oficial Subinspector"><option value="Oficial Inspector"><option value="Oficial Principal">
+    <option value="Subcomisario"><option value="Comisario"><option value="Comisario Inspector">
+    <option value="Comisario Principal"><option value="Comisario Mayor"><option value="Comisario General">
+  </datalist>
+
+  <div id="toast" hidden></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
