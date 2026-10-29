@@ -265,6 +265,12 @@ async function actualizarInsignia() {
   const b = $('#insignia-pend');
   b.textContent = count || 0;
   b.hidden = !count;
+  if (estado.perfil.rol === 'admin') {
+    const r = await sb.from('perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente');
+    const a = $('#insignia-admin');
+    a.textContent = r.count || 0;
+    a.hidden = !r.count;
+  }
 }
 
 async function actualizarFirmaPropia() {
@@ -960,37 +966,166 @@ function crearPad(canvas) {
 }
 
 // ---------- Administración ----------
+const ESTADOS_USR = { pendiente: 'Pendiente', activo: 'Activo', suspendido: 'Suspendido' };
+const ACCIONES = {
+  firma_registrada: 'Registró su firma',
+  firma_actualizada: 'Cambió su firma o PIN',
+  acta_enviada_a_firma: 'Envió un acta a firma',
+  acta_firmada: 'Firmó un acta',
+  firma_rechazada: 'Rechazó una solicitud de firma',
+  acta_anulada: 'Anuló un acta',
+  pin_incorrecto: 'Ingresó un PIN incorrecto',
+  admin_usuario_actualizado: 'Modificó una cuenta',
+  admin_firma_reseteada: 'Borró la firma de un agente',
+  admin_clave_restablecida: 'Restableció una contraseña',
+};
+const iniciales = (u) => `${(u.apellido || '?')[0]}${(u.nombre || '')[0] || ''}`.toUpperCase();
+const avatar = (u) => h('span', { class: 'avatar', 'aria-hidden': 'true' }, iniciales(u));
+
 async function vistaAdmin() {
   if (estado.perfil.rol !== 'admin') return h('div', { class: 'aviso error' }, h('p', {}, 'Solo administradores.'));
-  let filtro = 'pendiente';
-  const lista = h('div', { class: 'tarjeta' });
-  const buscar = h('input', { placeholder: 'Buscar por apellido, legajo o dependencia…' });
 
-  const cargar = async () => {
-    cargandoEn(lista);
-    const { data, error } = await sb.rpc('admin_usuarios', { p_estado: filtro === 'todos' ? null : filtro, p_texto: buscar.value.trim() || null });
-    if (error) return lista.replaceChildren(h('div', { class: 'aviso error' }, h('p', {}, mensajeError(error))));
-    lista.replaceChildren(data.length === 0 ? h('div', { class: 'vacio' }, 'Sin usuarios en esta lista.')
-      : h('ul', { class: 'lista' }, data.map((u) => h('li', {},
-        h('div', { class: 'item', role: 'button', tabindex: '0', onclick: () => modalUsuario(u, cargar) },
-          h('div', {},
-            h('div', { class: 'tit' }, `${u.jerarquia} ${u.apellido}, ${u.nombre}`),
-            h('div', { class: 'meta' }, `Leg. ${u.legajo} · ${u.dependencia}${u.cargo ? ' · ' + u.cargo : ''}`),
-            h('div', { class: 'meta' }, `Alta: ${fecha(u.creado_at)} · ${u.tiene_firma ? 'Firma registrada' : 'Sin firma'}`)),
-          h('div', { class: 'der' }, chip(u.estado, { pendiente: 'Pendiente', activo: 'Activo', suspendido: 'Suspendido' }), u.rol === 'admin' && chip('admin', { admin: 'Admin' })))))));
+  let filtro = 'pendiente';
+  let pestana = 'personal';
+  let filas = [];
+  const stats = h('div', { class: 'stats' });
+  const cuerpo = h('div');
+  const tabla = h('div', { class: 'tabla-caja' });
+  const buscar = h('input', { type: 'search', placeholder: 'Buscar por apellido, legajo o dependencia…', 'aria-label': 'Buscar personal' });
+  const mostrar = h('select', { 'aria-label': 'Mostrar' }, [
+    ['pendiente', 'Pendientes de aprobación'], ['activo', 'Personal activo'], ['suspendido', 'Suspendidos'],
+    ['admin', 'Administradores'], ['todos', 'Todo el personal'],
+  ].map(([v, t]) => h('option', { value: v }, t)));
+
+  const contar = (campos) => {
+    let q = sb.from('perfiles').select('id', { count: 'exact', head: true });
+    for (const [k, v] of Object.entries(campos)) q = q.eq(k, v);
+    return q;
+  };
+
+  const pintarStats = async () => {
+    const [p, a, s, ad] = await Promise.all([
+      contar({ estado: 'pendiente' }), contar({ estado: 'activo' }), contar({ estado: 'suspendido' }), contar({ rol: 'admin', estado: 'activo' }),
+    ]);
+    const tarjeta = (num, texto, clave, tono) => h('button', {
+      type: 'button', class: `stat ${tono} ${pestana === 'personal' && filtro === clave ? 'activo' : ''}`,
+      onclick: () => { filtro = clave; pestana = 'personal'; render(); },
+    }, h('span', { class: 'stat-num' }, num ?? 0), h('span', { class: 'stat-lbl' }, texto));
+    stats.replaceChildren(
+      tarjeta(p.count, 'Pendientes de aprobación', 'pendiente', 'ambar'),
+      tarjeta(a.count, 'Personal activo', 'activo', 'verde'),
+      tarjeta(s.count, 'Cuentas suspendidas', 'suspendido', 'rojo'),
+      tarjeta(ad.count, 'Administradores', 'admin', 'azul'));
+  };
+
+  const recargar = () => { pintarStats(); cargarTabla(); actualizarInsignia(); };
+
+  const aprobar = async (u) => {
+    const ok = await confirmar('Aprobar cuenta',
+      `¿Activar la cuenta de ${u.jerarquia} ${u.apellido}, ${u.nombre} (legajo ${u.legajo}, ${u.dependencia})? Verificá antes su identidad.`,
+      { boton: 'Aprobar' });
+    if (!ok) return;
+    const { error } = await sb.rpc('admin_actualizar_usuario', {
+      p_id: u.id, p_estado: 'activo', p_rol: u.rol, p_jerarquia: u.jerarquia, p_dependencia: u.dependencia, p_cargo: u.cargo,
+    });
+    if (error) return toast(mensajeError(error), 'error');
+    toast(`Cuenta de ${u.apellido} aprobada.`);
+    recargar();
+  };
+
+  const cargarTabla = async () => {
+    tabla.replaceChildren(h('div', { class: 'vacio' }, 'Cargando…'));
+    const est = ESTADOS_USR[filtro] ? filtro : null;
+    const { data, error } = await sb.rpc('admin_usuarios', { p_estado: est, p_texto: buscar.value.trim() || null });
+    if (error) return tabla.replaceChildren(h('div', { class: 'aviso error' }, h('p', {}, mensajeError(error))));
+    filas = filtro === 'admin' ? data.filter((u) => u.rol === 'admin') : data;
+    if (filas.length === 0) {
+      return tabla.replaceChildren(h('div', { class: 'vacio' },
+        filtro === 'pendiente' && !buscar.value.trim() ? 'No hay solicitudes de cuenta pendientes.' : 'Sin resultados.'));
+    }
+    tabla.replaceChildren(h('table', { class: 'tabla' },
+      h('thead', {}, h('tr', {}, ['Agente', 'Legajo', 'Dependencia', 'Firma', 'Estado', ''].map((t) => h('th', {}, t)))),
+      h('tbody', {}, filas.map((u) => h('tr', {},
+        h('td', { 'data-label': 'Agente' }, h('div', { class: 'agente' }, avatar(u),
+          h('div', {}, h('b', {}, `${u.apellido}, ${u.nombre}`), h('small', {}, u.jerarquia)))),
+        h('td', { 'data-label': 'Legajo' }, h('span', { class: 'mono' }, u.legajo), h('small', { class: 'bloque' }, `Alta ${fecha(u.creado_at).split(',')[0]}`)),
+        h('td', { 'data-label': 'Dependencia' }, u.dependencia, u.cargo && h('small', { class: 'bloque' }, u.cargo)),
+        h('td', { 'data-label': 'Firma' }, h('span', { class: `punto ${u.tiene_firma ? 'si' : 'no'}` }, u.tiene_firma ? 'Registrada' : 'Sin registrar')),
+        h('td', { 'data-label': 'Estado' }, h('div', { class: 'chips' }, chip(u.estado, ESTADOS_USR), u.rol === 'admin' && chip('admin', { admin: 'Admin' }))),
+        h('td', { class: 'acc' },
+          u.estado === 'pendiente' && h('button', { class: 'btn ok chico', type: 'button', onclick: () => aprobar(u) }, 'Aprobar'),
+          h('button', { class: 'btn sec chico', type: 'button', onclick: () => modalUsuario(u, recargar) }, u.estado === 'pendiente' ? 'Revisar' : 'Editar')))))));
+  };
+
+  const exportar = () => descargarCSV(`personal-${filtro}.csv`, [
+    ['Legajo', 'Apellido', 'Nombre', 'Jerarquía', 'Dependencia', 'Cargo', 'Estado', 'Rol', 'Firma registrada', 'Alta'],
+    ...filas.map((u) => [u.legajo, u.apellido, u.nombre, u.jerarquia, u.dependencia, u.cargo || '', ESTADOS_USR[u.estado], u.rol, u.tiene_firma ? 'Sí' : 'No', fecha(u.creado_at)]),
+  ]);
+
+  const cargarActividad = async (caja) => {
+    caja.replaceChildren(h('div', { class: 'vacio' }, 'Cargando…'));
+    const [ev, pers] = await Promise.all([
+      sb.from('auditoria').select('id, accion, fecha, detalle, usuario_id').order('fecha', { ascending: false }).limit(150),
+      sb.from('perfiles').select('id, apellido, nombre, legajo, jerarquia'),
+    ]);
+    if (ev.error) return caja.replaceChildren(h('div', { class: 'aviso error' }, h('p', {}, mensajeError(ev.error))));
+    const mapa = new Map((pers.data || []).map((p) => [p.id, p]));
+    const nombre = (id) => { const p = mapa.get(id); return p ? `${p.jerarquia} ${p.apellido}, ${p.nombre}` : '—'; };
+    const detalle = (e) => {
+      const d = e.detalle || {};
+      if (e.accion.startsWith('admin_')) return `Cuenta: ${nombre(d.usuario)}${d.estado ? ` · estado ${ESTADOS_USR[d.estado] || d.estado}` : ''}${d.rol ? ` · rol ${d.rol === 'admin' ? 'Administrador' : 'Agente'}` : ''}`;
+      if (e.accion === 'acta_enviada_a_firma') return `${(d.firmantes || []).length} firmante(s)`;
+      if (d.motivo) return `Motivo: ${d.motivo}`;
+      if (e.accion === 'pin_incorrecto') return d.en === 'firma' ? 'Al intentar firmar un acta' : 'Al intentar cambiar la firma';
+      return '';
+    };
+    if (!ev.data.length) return caja.replaceChildren(h('div', { class: 'vacio' }, 'Todavía no hay actividad registrada.'));
+    caja.replaceChildren(h('table', { class: 'tabla' },
+      h('thead', {}, h('tr', {}, ['Fecha y hora', 'Agente', 'Acción', 'Detalle'].map((t) => h('th', {}, t)))),
+      h('tbody', {}, ev.data.map((e) => h('tr', { class: e.accion === 'pin_incorrecto' ? 'fila-alerta' : null },
+        h('td', { 'data-label': 'Fecha' }, h('span', { class: 'mono' }, fecha(e.fecha))),
+        h('td', { 'data-label': 'Agente' }, nombre(e.usuario_id)),
+        h('td', { 'data-label': 'Acción' }, ACCIONES[e.accion] || e.accion),
+        h('td', { 'data-label': 'Detalle' }, h('small', {}, detalle(e))))))));
+  };
+
+  const tabs = h('div', { class: 'tabs', role: 'tablist' });
+  const render = () => {
+    tabs.replaceChildren(...[['personal', 'Personal'], ['actividad', 'Registro de actividad']].map(([k, t]) =>
+      h('button', { type: 'button', role: 'tab', class: pestana === k ? 'activo' : '', onclick: () => { pestana = k; render(); } }, t)));
+    if (pestana === 'personal') {
+      mostrar.value = filtro;
+      cuerpo.replaceChildren(h('section', { class: 'panel' },
+        h('div', { class: 'panel-barra' },
+          h('div', { class: 'buscador' }, buscar),
+          mostrar,
+          h('button', { class: 'btn sec', type: 'button', onclick: exportar }, 'Exportar CSV')),
+        filtro === 'pendiente' && h('div', { class: 'nota' }, 'Antes de aprobar, verificá que legajo, apellido, nombre y jerarquía coincidan con la credencial del agente.'),
+        tabla));
+      cargarTabla();
+    } else {
+      const caja = h('div', { class: 'tabla-caja' });
+      cuerpo.replaceChildren(h('section', { class: 'panel' },
+        h('div', { class: 'panel-barra' }, h('div', {}, h('b', {}, 'Últimos movimientos del sistema'), h('small', { class: 'bloque sutil' }, 'Los PIN incorrectos se marcan en rojo.')),
+          h('button', { class: 'btn sec', type: 'button', onclick: () => cargarActividad(caja) }, 'Actualizar')),
+        caja));
+      cargarActividad(caja);
+    }
+    pintarStats();
   };
 
   let espera;
-  buscar.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(cargar, 350); });
-  const filtros = h('div', { class: 'filtros' }, [['pendiente', 'Pendientes'], ['activo', 'Activos'], ['suspendido', 'Suspendidos'], ['todos', 'Todos']].map(([k, t]) =>
-    h('button', { class: `filtro ${k === filtro ? 'activo' : ''}`, type: 'button', onclick: (e) => {
-      filtro = k; filtros.querySelectorAll('.filtro').forEach((b) => b.classList.toggle('activo', b === e.currentTarget)); cargar();
-    } }, t)));
-  cargar();
+  buscar.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(cargarTabla, 350); });
+  mostrar.addEventListener('change', () => { filtro = mostrar.value; pintarStats(); cargarTabla(); });
+  render();
+
   return h('div', {},
-    h('div', { class: 'encabezado' }, h('h1', {}, 'Administración de usuarios')),
-    h('div', { class: 'aviso info' }, h('p', {}, 'Antes de activar una cuenta, verificá que el legajo, nombre y jerarquía correspondan a la persona (por ejemplo, con su credencial).')),
-    h('div', { class: 'campo' }, buscar), filtros, lista);
+    h('div', { class: 'admin-cab' },
+      h('div', {},
+        h('span', { class: 'sobretitulo' }, 'Administración del sistema'),
+        h('h1', {}, 'Panel de administración'),
+        h('p', { class: 'sutil' }, 'Alta, verificación y control del personal habilitado para la firma electrónica.'))),
+    stats, tabs, cuerpo);
 }
 
 function modalUsuario(u, recargar) {
@@ -1001,8 +1136,8 @@ function modalUsuario(u, recargar) {
   const func = h('select', { required: true });
   const jer = h('select', { required: true });
   prepararJerarquia(func, jer, u.jerarquia);
-  const dep = h('input', { value: u.dependencia, required: true });
-  const car = h('input', { value: u.cargo || '' });
+  const dep = h('input', { value: u.dependencia, required: true, maxlength: '120' });
+  const car = h('input', { value: u.cargo || '', maxlength: '120' });
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -1011,7 +1146,7 @@ function modalUsuario(u, recargar) {
       p_id: u.id, p_estado: est.value, p_rol: rol.value, p_jerarquia: jer.value, p_dependencia: dep.value, p_cargo: car.value,
     });
     if (error) return toast(mensajeError(error), 'error');
-    m.cerrar(); toast('Usuario actualizado.'); recargar();
+    m.cerrar(); toast('Cuenta actualizada.'); recargar();
   };
   const resetFirma = async () => {
     if (!(await confirmar('Borrar firma', `Se borrará la firma y el PIN de ${u.apellido}. Deberá registrarla de nuevo. Las actas ya firmadas no cambian.`, { boton: 'Borrar firma', peligro: true }))) return;
@@ -1027,17 +1162,23 @@ function modalUsuario(u, recargar) {
     toast('Contraseña restablecida.');
   };
 
-  m = abrirModal(`${u.jerarquia} ${u.apellido}, ${u.nombre}`, h('form', { onsubmit: guardar },
-    h('p', { class: 'sutil' }, `Legajo ${u.legajo}`),
+  m = abrirModal(`${u.apellido}, ${u.nombre}`, h('form', { onsubmit: guardar },
+    h('div', { class: 'ficha' }, avatar(u), h('div', {},
+      h('b', {}, u.jerarquia),
+      h('small', { class: 'bloque' }, `Legajo ${u.legajo} · alta ${fecha(u.creado_at)}`),
+      h('div', { class: 'chips' }, chip(u.estado, ESTADOS_USR), u.rol === 'admin' && chip('admin', { admin: 'Admin' }),
+        h('span', { class: `punto ${u.tiene_firma ? 'si' : 'no'}` }, u.tiene_firma ? 'Firma registrada' : 'Sin firma')))),
+    h('h3', { class: 'seccion' }, 'Cuenta'),
     h('div', { class: 'fila' }, h('div', { class: 'campo' }, h('label', {}, 'Estado'), est), h('div', { class: 'campo' }, h('label', {}, 'Rol'), rol)),
-    h('div', { class: 'campo' }, h('label', {}, 'Funcionario'), func),
-    h('div', { class: 'campo' }, h('label', {}, 'Jerarquía'), jer),
+    h('h3', { class: 'seccion' }, 'Datos del agente'),
+    h('div', { class: 'fila' }, h('div', { class: 'campo' }, h('label', {}, 'Funcionario'), func), h('div', { class: 'campo' }, h('label', {}, 'Jerarquía'), jer)),
     h('div', { class: 'campo' }, h('label', {}, 'Dependencia'), dep),
     h('div', { class: 'campo' }, h('label', {}, 'Cargo'), car),
-    h('div', { class: 'acciones', style: 'margin-bottom:14px' },
+    h('h3', { class: 'seccion' }, 'Seguridad'),
+    h('div', { class: 'acciones', style: 'margin-bottom:18px' },
       h('button', { class: 'btn sec chico', type: 'button', onclick: resetClave }, 'Restablecer contraseña'),
       u.tiene_firma && h('button', { class: 'btn peligro chico', type: 'button', onclick: resetFirma }, 'Borrar firma / PIN')),
-    h('div', { class: 'acciones fin' }, h('button', { class: 'btn sec', type: 'button', onclick: () => m.cerrar() }, 'Cancelar'), h('button', { class: 'btn', type: 'submit' }, 'Guardar'))));
+    h('div', { class: 'acciones fin pie-modal' }, h('button', { class: 'btn sec', type: 'button', onclick: () => m.cerrar() }, 'Cancelar'), h('button', { class: 'btn', type: 'submit' }, 'Guardar cambios'))), { ancho: 620 });
 }
 
 // =====================================================================
