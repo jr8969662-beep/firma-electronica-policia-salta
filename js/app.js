@@ -884,8 +884,8 @@ async function vistaFirma() {
   if (actual?.tiene) {
     seccionFirma.append(
       h('div', { class: 'firma-actual' }, h('img', { src: actual.imagen, alt: 'Mi firma' })),
-      h('p', { class: 'sutil', style: 'margin-top:8px' }, `Registrada/actualizada el ${fecha(actual.actualizada_at)}. Las actas ya firmadas conservan la firma que tenían en ese momento.`),
-      actual.bloqueada_hasta && new Date(actual.bloqueada_hasta) > new Date() && h('div', { class: 'aviso error' }, h('p', {}, `Firma bloqueada por intentos fallidos hasta ${fecha(actual.bloqueada_hasta)}.`)),
+      h('p', { class: 'sutil', style: 'margin-top:8px' }, `Registrada o actualizada el ${fecha(actual.actualizada_at)} — las actas ya firmadas conservan la firma que tenían en ese momento.`),
+      h('div', {}, actual.bloqueada_hasta && new Date(actual.bloqueada_hasta) > new Date() && h('div', { class: 'aviso error' }, h('p', {}, `Firma bloqueada por intentos fallidos hasta ${fecha(actual.bloqueada_hasta)}.`))),
       zonaPad);
     zonaPad.append(h('button', { class: 'btn sec', type: 'button', onclick: mostrarPad }, 'Cambiar mi firma o PIN'));
   } else {

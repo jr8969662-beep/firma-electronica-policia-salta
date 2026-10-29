@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilos.css">
+  <meta name="theme-color" content="#0b1f45">
+  <script src="js/tema.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
 </head>
 <body>
@@ -25,6 +27,7 @@
 
   <!-- Pantalla de acceso -->
   <section id="vista-acceso" class="acceso" hidden>
+    <button class="btn-tema tema-acceso" type="button" data-cambiar-tema aria-label="Cambiar tema"></button>
     <div class="acceso-caja">
       <div class="acceso-logo">
         <img src="img/escudo.svg" alt="">
@@ -81,6 +84,7 @@
           <div><b>Firma Electrónica</b><span>Policía de la Provincia de Salta</span></div>
         </a>
         <div class="usuario"><b id="u-nombre"></b><span id="u-detalle"></span></div>
+        <button class="btn-tema" type="button" data-cambiar-tema aria-label="Cambiar tema"></button>
         <button class="btn-salir" id="btn-salir" type="button">Salir</button>
       </div>
       <nav class="menu" id="menu">
