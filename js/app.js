@@ -991,7 +991,7 @@ async function vistaAdmin() {
   const stats = h('div', { class: 'stats' });
   const cuerpo = h('div');
   const tabla = h('div', { class: 'tabla-caja' });
-  const buscar = h('input', { type: 'search', placeholder: 'Buscar por apellido, legajo o dependencia…', 'aria-label': 'Buscar personal' });
+  const buscar = h('input', { type: 'search', placeholder: 'Buscar apellido o legajo…', 'aria-label': 'Buscar personal por apellido, legajo o dependencia' });
   const mostrar = h('select', { 'aria-label': 'Mostrar' }, [
     ['pendiente', 'Pendientes de aprobación'], ['activo', 'Personal activo'], ['suspendido', 'Suspendidos'],
     ['admin', 'Administradores'], ['todos', 'Todo el personal'],

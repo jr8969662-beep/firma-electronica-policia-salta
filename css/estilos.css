@@ -101,6 +101,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
   box-shadow: var(--sombra); padding: 18px;
 }
 .tarjeta + .tarjeta { margin-top: 14px; }
+.grilla > .tarjeta { margin-top: 0; }
 
 .grilla { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .dato { display: block; text-decoration: none; color: inherit; }
@@ -369,4 +370,76 @@ textarea { min-height: 280px; resize: vertical; line-height: 1.55; }
   .barra, .menu, .doc-acciones, .no-imprimir, #toast, .modal-fondo { display: none !important; }
   main { padding: 0; max-width: none; }
   .hoja { border: 0; box-shadow: none; padding: 0; max-width: none; }
+}
+
+/* ---------- Celular: letras y botones más grandes ---------- */
+@media (max-width: 700px) {
+  html { font-size: 18px; }
+  body { font-size: 1rem; line-height: 1.55; }
+  main { padding: 18px 14px 70px; }
+  h1, .encabezado h1, .admin-cab h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+
+  /* Botones: grandes y fáciles de tocar */
+  .btn, .btn.chico { min-height: 50px; padding: 12px 18px; font-size: 1.02rem; border-radius: 10px; }
+  .acciones .btn, .doc-acciones .btn { flex: 1 1 auto; }
+  .tabla td.acc { display: flex; gap: 8px; }
+  .tabla td.acc .btn { flex: 1; }
+  .tabla td.acc .btn + .btn { margin-left: 0; }
+  .btn-salir { min-height: 44px; padding: 8px 14px; font-size: .95rem; }
+  .filtro { padding: 9px 16px; font-size: .95rem; }
+
+  /* Campos de texto: 18px evita que el celular haga zoom al escribir */
+  input, select, textarea { font-size: 1rem; min-height: 52px; padding: 12px 14px; }
+  textarea { min-height: 300px; }
+  label { font-size: 1rem; }
+  .pin { font-size: 1.6rem; }
+
+  /* Barra y menú */
+  .barra-in { padding: 10px 14px; }
+  .marca img { width: 38px; height: 38px; }
+  .marca b { font-size: 1.05rem; }
+  .usuario { font-size: .9rem; }
+  .menu a { padding: 14px 14px; font-size: 1rem; }
+  .insignia { min-width: 22px; height: 22px; font-size: .78rem; }
+
+  /* Listas, tablas y tarjetas */
+  .item { padding: 16px 4px; }
+  .item .meta, .tabla small, .stat-lbl { font-size: .92rem; }
+  .tabla { font-size: 1rem; }
+  .tabla td[data-label]:not([data-label="Agente"])::before { font-size: .74rem; margin-bottom: 2px; }
+  .avatar { width: 44px; height: 44px; font-size: .95rem; }
+  .chip { font-size: .85rem; padding: 4px 12px; }
+  .punto { font-size: .95rem; }
+  .stat { padding: 16px; }
+  .stat-num { font-size: 2.1rem; }
+  .tabs button { flex: 1; padding: 14px 8px; font-size: 1rem; }
+  .panel-barra { padding: 14px; }
+  .panel-barra .btn { flex: 1 1 100%; }
+  .nota { font-size: .95rem; }
+  .sobretitulo { font-size: .78rem; }
+  .seccion { font-size: .82rem; }
+
+  /* Ventanas emergentes a casi pantalla completa */
+  .modal-fondo { padding: 12px 10px; }
+  .modal { padding: 18px 16px; border-radius: 14px; }
+  .modal .fila { grid-template-columns: 1fr; gap: 0; }
+  .pie-modal .btn { flex: 1; }
+  #toast { font-size: 1rem; padding: 14px 18px; bottom: 18px; }
+
+  /* Pantalla de ingreso */
+  .pestanas button { font-size: 1.05rem; padding: 14px 10px; }
+  .acceso-logo h1 { font-size: 1.7rem; }
+
+  /* Barra: solo el escudo, así entra el nombre completo */
+  .marca > div { display: none; }
+  .usuario { text-align: left; margin-left: 4px; flex: 1; }
+  .usuario b { white-space: normal; font-size: .95rem; line-height: 1.25; }
+  .menu { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+
+  /* Inicio: tarjetas en dos columnas */
+  .grilla { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tarjeta.dato { padding: 14px; }
+  .dato .num { font-size: 2.2rem; }
+  .dato .lbl { font-size: .92rem; line-height: 1.3; }
 }
