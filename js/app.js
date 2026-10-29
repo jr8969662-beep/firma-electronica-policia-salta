@@ -33,6 +33,45 @@ const ESTADOS_ACTA = { borrador: 'Borrador', en_firma: 'Esperando firmas', firma
 const ESTADOS_SOL = { pendiente: 'Pendiente', firmada: 'Firmada', rechazada: 'Rechazada', cancelada: 'Cancelada' };
 const chip = (estado, textos = ESTADOS_ACTA) => h('span', { class: `chip ${estado}` }, textos[estado] || estado);
 
+// Escalafones y jerarquías. [texto que se ve en la lista, cómo se guarda y sale en el acta]
+const ESCALAFONES = {
+  suboficial: {
+    etiqueta: 'SUB-OFICIAL',
+    grados: [
+      ['AGENTE', 'Agente'], ['CABO', 'Cabo'], ['SARGENTO', 'Sargento'], ['SARGENTO AYUDANTE', 'Sargento Ayudante'],
+      ['PRINCIPAL', 'Suboficial Principal'], ['MAYOR', 'Suboficial Mayor'],
+    ],
+  },
+  oficial: {
+    etiqueta: 'OFICIAL',
+    grados: [
+      ['SUB-AYUDANTE', 'Oficial Subayudante'], ['AYUDANTE', 'Oficial Ayudante'], ['AUXILIAR', 'Oficial Auxiliar'],
+      ['PRINCIPAL', 'Oficial Principal'], ['SUB COMISARIO', 'Subcomisario'], ['COMISARIO', 'Comisario'],
+      ['COMISARIO INSPECTOR', 'Comisario Inspector'], ['COMISARIO MAYOR', 'Comisario Mayor'], ['COMISARIO GENERAL', 'Comisario General'],
+    ],
+  },
+};
+const escalafonDe = (jerarquia) =>
+  Object.keys(ESCALAFONES).find((k) => ESCALAFONES[k].grados.some(([, v]) => v === jerarquia)) || '';
+
+// Arma los dos desplegables: Funcionario → Jerarquía (la lista cambia según el funcionario)
+function prepararJerarquia(selFunc, selJer, actual = '') {
+  const opcion = (v, t, sel = false) => h('option', { value: v, selected: sel }, t);
+  selFunc.replaceChildren(opcion('', 'Elegí una opción', true),
+    ...Object.entries(ESCALAFONES).map(([k, e]) => opcion(k, e.etiqueta)));
+  const llenar = (valor = '') => {
+    const esc = ESCALAFONES[selFunc.value];
+    selJer.disabled = !esc;
+    selJer.replaceChildren(opcion('', esc ? 'Elegí la jerarquía' : 'Primero elegí funcionario', !valor),
+      ...(esc ? esc.grados.map(([t, v]) => opcion(v, t, v === valor)) : []));
+    // Jerarquía cargada antes de este cambio que no está en las listas: se conserva
+    if (valor && !selJer.value) selJer.append(opcion(valor, valor, true));
+  };
+  selFunc.onchange = () => llenar();
+  selFunc.value = escalafonDe(actual);
+  llenar(actual);
+}
+
 const TIPOS = [
   'Acta de procedimiento', 'Acta de secuestro', 'Acta de inspección ocular', 'Acta de constatación',
   'Acta de notificación', 'Acta de entrega', 'Acta de detención', 'Acta de allanamiento',
@@ -239,6 +278,7 @@ async function actualizarFirmaPropia() {
 //  Pantalla de acceso
 // =====================================================================
 function prepararAcceso() {
+  prepararJerarquia($('#re-funcionario'), $('#re-jerarquia'));
   const pest = document.querySelectorAll('.pestanas button');
   pest.forEach((b) => b.addEventListener('click', () => {
     pest.forEach((x) => x.classList.toggle('activo', x === b));
@@ -263,6 +303,8 @@ function prepararAcceso() {
     const v = (id) => $(id).value.trim();
     const legajo = v('#re-legajo');
     if (!legajoValido(legajo)) return toast('El legajo debe tener entre 3 y 15 letras o números, sin espacios ni puntos.', 'error');
+    if (!$('#re-funcionario').value) return toast('Elegí si sos Sub-oficial u Oficial.', 'error');
+    if (!$('#re-jerarquia').value) return toast('Elegí tu jerarquía.', 'error');
     if ($('#re-clave').value !== $('#re-clave2').value) return toast('Las contraseñas no coinciden.', 'error');
     if ($('#re-clave').value.length < 8) return toast('La contraseña debe tener al menos 8 caracteres.', 'error');
     const btn = e.submitter || $('#form-registro button[type=submit]');
@@ -285,6 +327,7 @@ function prepararAcceso() {
       $('#in-legajo').value = legajo;
     }
     e.target.reset();
+    prepararJerarquia($('#re-funcionario'), $('#re-jerarquia'));
   });
 }
 
@@ -955,12 +998,15 @@ function modalUsuario(u, recargar) {
   const sel = (opciones, valor) => h('select', {}, opciones.map(([v, t]) => h('option', { value: v, selected: v === valor }, t)));
   const est = sel([['pendiente', 'Pendiente'], ['activo', 'Activo'], ['suspendido', 'Suspendido']], u.estado);
   const rol = sel([['agente', 'Agente'], ['admin', 'Administrador']], u.rol);
-  const jer = h('input', { list: 'jerarquias', value: u.jerarquia, required: true });
+  const func = h('select', { required: true });
+  const jer = h('select', { required: true });
+  prepararJerarquia(func, jer, u.jerarquia);
   const dep = h('input', { value: u.dependencia, required: true });
   const car = h('input', { value: u.cargo || '' });
 
   const guardar = async (e) => {
     e.preventDefault();
+    if (!jer.value) return toast('Elegí funcionario y jerarquía.', 'error');
     const { error } = await sb.rpc('admin_actualizar_usuario', {
       p_id: u.id, p_estado: est.value, p_rol: rol.value, p_jerarquia: jer.value, p_dependencia: dep.value, p_cargo: car.value,
     });
@@ -984,6 +1030,7 @@ function modalUsuario(u, recargar) {
   m = abrirModal(`${u.jerarquia} ${u.apellido}, ${u.nombre}`, h('form', { onsubmit: guardar },
     h('p', { class: 'sutil' }, `Legajo ${u.legajo}`),
     h('div', { class: 'fila' }, h('div', { class: 'campo' }, h('label', {}, 'Estado'), est), h('div', { class: 'campo' }, h('label', {}, 'Rol'), rol)),
+    h('div', { class: 'campo' }, h('label', {}, 'Funcionario'), func),
     h('div', { class: 'campo' }, h('label', {}, 'Jerarquía'), jer),
     h('div', { class: 'campo' }, h('label', {}, 'Dependencia'), dep),
     h('div', { class: 'campo' }, h('label', {}, 'Cargo'), car),

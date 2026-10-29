@@ -52,10 +52,9 @@
 
         <form id="form-registro" hidden autocomplete="on">
           <div class="aviso info" style="font-size:.9rem"><p>Tu cuenta queda <b>pendiente</b> hasta que un administrador verifique tus datos y la active.</p></div>
-          <div class="fila">
-            <div class="campo"><label for="re-legajo">Legajo</label><input id="re-legajo" inputmode="numeric" autocomplete="username" required maxlength="15" pattern="[0-9A-Za-z]{3,15}"></div>
-            <div class="campo"><label for="re-jerarquia">Jerarquía</label><input id="re-jerarquia" list="jerarquias" required maxlength="60"></div>
-          </div>
+          <div class="campo"><label for="re-legajo">Legajo</label><input id="re-legajo" inputmode="numeric" autocomplete="username" required maxlength="15" pattern="[0-9A-Za-z]{3,15}"></div>
+          <div class="campo"><label for="re-funcionario">Funcionario</label><select id="re-funcionario" required></select></div>
+          <div class="campo"><label for="re-jerarquia">Jerarquía</label><select id="re-jerarquia" required></select></div>
           <div class="fila">
             <div class="campo"><label for="re-apellido">Apellido</label><input id="re-apellido" required maxlength="60" autocomplete="family-name"></div>
             <div class="campo"><label for="re-nombre">Nombre</label><input id="re-nombre" required maxlength="60" autocomplete="given-name"></div>
@@ -98,15 +97,6 @@
     </header>
     <main id="contenido"></main>
   </div>
-
-  <datalist id="jerarquias">
-    <option value="Agente"><option value="Cabo"><option value="Cabo Primero"><option value="Sargento">
-    <option value="Sargento Primero"><option value="Sargento Ayudante"><option value="Suboficial Principal">
-    <option value="Suboficial Mayor"><option value="Oficial Subayudante"><option value="Oficial Ayudante">
-    <option value="Oficial Subinspector"><option value="Oficial Inspector"><option value="Oficial Principal">
-    <option value="Subcomisario"><option value="Comisario"><option value="Comisario Inspector">
-    <option value="Comisario Principal"><option value="Comisario Mayor"><option value="Comisario General">
-  </datalist>
 
   <div id="toast" hidden></div>
   <script type="module" src="js/app.js"></script>
