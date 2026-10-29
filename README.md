@@ -50,6 +50,10 @@ Repositorio → **Settings → Pages** → *Source*: **Deploy from a branch** �
    ```
 3. Volvé a ingresar: vas a ver la pestaña **Administración**, desde donde activás al resto, corregís jerarquía/dependencia/cargo, restablecés contraseñas olvidadas y borrás firmas cuyo PIN se olvidó.
 
+## Actualizaciones de la base de datos
+Si la base ya estaba creada, ejecutá en orden (SQL Editor → New query → pegar → Run) los archivos `supabase/actualizacion-XX-*.sql` que todavía no hayas corrido. Un proyecto nuevo solo necesita `esquema.sql`, que ya los incluye.
+- `actualizacion-01-mayusculas.sql` — guarda apellido, nombre, jerarquía, dependencia y cargo en MAYÚSCULAS.
+
 ## Estructura
 ```
 index.html            Aplicación (acceso, actas, firmas, historial, administración)

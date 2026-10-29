@@ -154,10 +154,10 @@ begin
     new.id,
     upper(trim(m->>'legajo')),
     upper(trim(m->>'apellido')),
-    initcap(trim(m->>'nombre')),
-    trim(m->>'jerarquia'),
-    trim(m->>'dependencia'),
-    nullif(trim(m->>'cargo'), '')
+    upper(trim(m->>'nombre')),
+    upper(trim(m->>'jerarquia')),
+    upper(trim(m->>'dependencia')),
+    nullif(upper(trim(m->>'cargo')), '')
   );
   return new;
 end $$;
@@ -457,8 +457,8 @@ begin
   if p_id = auth.uid() and (p_rol <> 'admin' or p_estado <> 'activo') then
     raise exception 'No podés quitarte a vos mismo el rol de administrador ni suspender tu cuenta.';
   end if;
-  update perfiles set estado = p_estado, rol = p_rol, jerarquia = trim(p_jerarquia),
-                      dependencia = trim(p_dependencia), cargo = nullif(trim(coalesce(p_cargo, '')), '')
+  update perfiles set estado = p_estado, rol = p_rol, jerarquia = upper(trim(p_jerarquia)),
+                      dependencia = upper(trim(p_dependencia)), cargo = nullif(upper(trim(coalesce(p_cargo, ''))), '')
   where id = p_id;
   if not found then raise exception 'Usuario no encontrado.'; end if;
   perform registrar('admin_usuario_actualizado', null,

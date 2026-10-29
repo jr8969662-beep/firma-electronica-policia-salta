@@ -38,24 +38,37 @@ const ESCALAFONES = {
   suboficial: {
     etiqueta: 'SUB-OFICIAL',
     grados: [
-      ['AGENTE', 'Agente'], ['CABO', 'Cabo'], ['SARGENTO', 'Sargento'], ['SARGENTO AYUDANTE', 'Sargento Ayudante'],
-      ['PRINCIPAL', 'Suboficial Principal'], ['MAYOR', 'Suboficial Mayor'],
+      ['AGENTE', 'AGENTE'], ['CABO', 'CABO'], ['SARGENTO', 'SARGENTO'], ['SARGENTO AYUDANTE', 'SARGENTO AYUDANTE'],
+      ['PRINCIPAL', 'SUBOFICIAL PRINCIPAL'], ['MAYOR', 'SUBOFICIAL MAYOR'],
     ],
   },
   oficial: {
     etiqueta: 'OFICIAL',
     grados: [
-      ['SUB-AYUDANTE', 'Oficial Subayudante'], ['AYUDANTE', 'Oficial Ayudante'], ['AUXILIAR', 'Oficial Auxiliar'],
-      ['PRINCIPAL', 'Oficial Principal'], ['SUB COMISARIO', 'Subcomisario'], ['COMISARIO', 'Comisario'],
-      ['COMISARIO INSPECTOR', 'Comisario Inspector'], ['COMISARIO MAYOR', 'Comisario Mayor'], ['COMISARIO GENERAL', 'Comisario General'],
+      ['SUB-AYUDANTE', 'OFICIAL SUBAYUDANTE'], ['AYUDANTE', 'OFICIAL AYUDANTE'], ['AUXILIAR', 'OFICIAL AUXILIAR'],
+      ['PRINCIPAL', 'OFICIAL PRINCIPAL'], ['SUB COMISARIO', 'SUBCOMISARIO'], ['COMISARIO', 'COMISARIO'],
+      ['COMISARIO INSPECTOR', 'COMISARIO INSPECTOR'], ['COMISARIO MAYOR', 'COMISARIO MAYOR'], ['COMISARIO GENERAL', 'COMISARIO GENERAL'],
     ],
   },
 };
 const escalafonDe = (jerarquia) =>
-  Object.keys(ESCALAFONES).find((k) => ESCALAFONES[k].grados.some(([, v]) => v === jerarquia)) || '';
+  Object.keys(ESCALAFONES).find((k) => ESCALAFONES[k].grados.some(([, v]) => v === (jerarquia || '').toUpperCase())) || '';
+
+// Pasa a MAYÚSCULAS mientras se escribe, sin mover el cursor
+function mayusculas(input) {
+  input.style.textTransform = 'uppercase';
+  input.addEventListener('input', () => {
+    const { selectionStart: a, selectionEnd: b } = input;
+    const v = input.value.toLocaleUpperCase('es-AR');
+    if (v !== input.value) { input.value = v; try { input.setSelectionRange(a, b); } catch {} }
+  });
+  return input;
+}
+const MAY = (t) => (t || '').toLocaleUpperCase('es-AR');
 
 // Arma los dos desplegables: Funcionario → Jerarquía (la lista cambia según el funcionario)
 function prepararJerarquia(selFunc, selJer, actual = '') {
+  actual = MAY(actual);
   const opcion = (v, t, sel = false) => h('option', { value: v, selected: sel }, t);
   selFunc.replaceChildren(opcion('', 'Elegí una opción', true),
     ...Object.entries(ESCALAFONES).map(([k, e]) => opcion(k, e.etiqueta)));
@@ -285,6 +298,7 @@ async function actualizarFirmaPropia() {
 // =====================================================================
 function prepararAcceso() {
   prepararJerarquia($('#re-funcionario'), $('#re-jerarquia'));
+  ['#re-legajo', '#re-apellido', '#re-nombre', '#re-dependencia', '#re-cargo'].forEach((id) => mayusculas($(id)));
   const pest = document.querySelectorAll('.pestanas button');
   pest.forEach((b) => b.addEventListener('click', () => {
     pest.forEach((x) => x.classList.toggle('activo', x === b));
@@ -320,8 +334,8 @@ function prepararAcceso() {
       password: $('#re-clave').value,
       options: {
         data: {
-          legajo: legajo.toUpperCase(), apellido: v('#re-apellido'), nombre: v('#re-nombre'),
-          jerarquia: v('#re-jerarquia'), dependencia: v('#re-dependencia'), cargo: v('#re-cargo'),
+          legajo: MAY(legajo), apellido: MAY(v('#re-apellido')), nombre: MAY(v('#re-nombre')),
+          jerarquia: MAY(v('#re-jerarquia')), dependencia: MAY(v('#re-dependencia')), cargo: MAY(v('#re-cargo')),
         },
       },
     });
@@ -1022,7 +1036,7 @@ async function vistaAdmin() {
 
   const aprobar = async (u) => {
     const ok = await confirmar('Aprobar cuenta',
-      `¿Activar la cuenta de ${u.jerarquia} ${u.apellido}, ${u.nombre} (legajo ${u.legajo}, ${u.dependencia})? Verificá antes su identidad.`,
+      `¿Activar la cuenta de ${MAY(`${u.jerarquia} ${u.apellido}, ${u.nombre}`)} (legajo ${u.legajo}, ${MAY(u.dependencia)})? Verificá antes su identidad.`,
       { boton: 'Aprobar' });
     if (!ok) return;
     const { error } = await sb.rpc('admin_actualizar_usuario', {
@@ -1047,9 +1061,9 @@ async function vistaAdmin() {
       h('thead', {}, h('tr', {}, ['Agente', 'Legajo', 'Dependencia', 'Firma', 'Estado', ''].map((t) => h('th', {}, t)))),
       h('tbody', {}, filas.map((u) => h('tr', {},
         h('td', { 'data-label': 'Agente' }, h('div', { class: 'agente' }, avatar(u),
-          h('div', {}, h('b', {}, `${u.apellido}, ${u.nombre}`), h('small', {}, u.jerarquia)))),
+          h('div', {}, h('b', {}, MAY(`${u.apellido}, ${u.nombre}`)), h('small', {}, MAY(u.jerarquia))))),
         h('td', { 'data-label': 'Legajo' }, h('span', { class: 'mono' }, u.legajo), h('small', { class: 'bloque' }, `Alta ${fecha(u.creado_at).split(',')[0]}`)),
-        h('td', { 'data-label': 'Dependencia' }, u.dependencia, u.cargo && h('small', { class: 'bloque' }, u.cargo)),
+        h('td', { 'data-label': 'Dependencia' }, MAY(u.dependencia), u.cargo && h('small', { class: 'bloque' }, MAY(u.cargo))),
         h('td', { 'data-label': 'Firma' }, h('span', { class: `punto ${u.tiene_firma ? 'si' : 'no'}` }, u.tiene_firma ? 'Registrada' : 'Sin registrar')),
         h('td', { 'data-label': 'Estado' }, h('div', { class: 'chips' }, chip(u.estado, ESTADOS_USR), u.rol === 'admin' && chip('admin', { admin: 'Admin' }))),
         h('td', { class: 'acc' },
@@ -1070,7 +1084,7 @@ async function vistaAdmin() {
     ]);
     if (ev.error) return caja.replaceChildren(h('div', { class: 'aviso error' }, h('p', {}, mensajeError(ev.error))));
     const mapa = new Map((pers.data || []).map((p) => [p.id, p]));
-    const nombre = (id) => { const p = mapa.get(id); return p ? `${p.jerarquia} ${p.apellido}, ${p.nombre}` : '—'; };
+    const nombre = (id) => { const p = mapa.get(id); return p ? MAY(`${p.jerarquia} ${p.apellido}, ${p.nombre}`) : '—'; };
     const detalle = (e) => {
       const d = e.detalle || {};
       if (e.accion.startsWith('admin_')) return `Cuenta: ${nombre(d.usuario)}${d.estado ? ` · estado ${ESTADOS_USR[d.estado] || d.estado}` : ''}${d.rol ? ` · rol ${d.rol === 'admin' ? 'Administrador' : 'Agente'}` : ''}`;
@@ -1136,14 +1150,14 @@ function modalUsuario(u, recargar) {
   const func = h('select', { required: true });
   const jer = h('select', { required: true });
   prepararJerarquia(func, jer, u.jerarquia);
-  const dep = h('input', { value: u.dependencia, required: true, maxlength: '120' });
-  const car = h('input', { value: u.cargo || '', maxlength: '120' });
+  const dep = mayusculas(h('input', { value: MAY(u.dependencia), required: true, maxlength: '120' }));
+  const car = mayusculas(h('input', { value: MAY(u.cargo), maxlength: '120' }));
 
   const guardar = async (e) => {
     e.preventDefault();
     if (!jer.value) return toast('Elegí funcionario y jerarquía.', 'error');
     const { error } = await sb.rpc('admin_actualizar_usuario', {
-      p_id: u.id, p_estado: est.value, p_rol: rol.value, p_jerarquia: jer.value, p_dependencia: dep.value, p_cargo: car.value,
+      p_id: u.id, p_estado: est.value, p_rol: rol.value, p_jerarquia: MAY(jer.value), p_dependencia: MAY(dep.value), p_cargo: MAY(car.value),
     });
     if (error) return toast(mensajeError(error), 'error');
     m.cerrar(); toast('Cuenta actualizada.'); recargar();
@@ -1162,9 +1176,9 @@ function modalUsuario(u, recargar) {
     toast('Contraseña restablecida.');
   };
 
-  m = abrirModal(`${u.apellido}, ${u.nombre}`, h('form', { onsubmit: guardar },
+  m = abrirModal(MAY(`${u.apellido}, ${u.nombre}`), h('form', { onsubmit: guardar },
     h('div', { class: 'ficha' }, avatar(u), h('div', {},
-      h('b', {}, u.jerarquia),
+      h('b', {}, MAY(u.jerarquia)),
       h('small', { class: 'bloque' }, `Legajo ${u.legajo} · alta ${fecha(u.creado_at)}`),
       h('div', { class: 'chips' }, chip(u.estado, ESTADOS_USR), u.rol === 'admin' && chip('admin', { admin: 'Admin' }),
         h('span', { class: `punto ${u.tiene_firma ? 'si' : 'no'}` }, u.tiene_firma ? 'Firma registrada' : 'Sin firma')))),
